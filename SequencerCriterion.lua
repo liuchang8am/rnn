@@ -23,9 +23,12 @@ end
 
 function SequencerCriterion:updateOutput(inputTable, targetTable)
    self.output = 0
+
    for i,input in ipairs(inputTable) do
       self.output = self.output + self.criterion:forward(input, targetTable[i])
    end
+   self.output = self.output / #inputTable --normalize by sequenec length
+--   print ("SequencerCriterion:", self.output)
    return self.output
 end
 
