@@ -30,30 +30,14 @@ function SequencerCriterion:updateOutput(inputTable, targetTable)
 end
 
 function SequencerCriterion:updateGradInput(inputTable, targetTable)
+   self.gradInput = {}
    for i,input in ipairs(inputTable) do
-      self.gradInput[i] = nn.rnn.recursiveCopy(
-         self.gradInput[i] or table.remove(self._gradInput, 1), 
-         self.criterion:backward(input, targetTable[i])
-      )
+     self.gradInput[i] = self.criterion:backward(input, targetTable[i])
+     for j = 1, targetTable[i]:size()[1] do -- set the gradients of '#' to zero
+      if targetTable[i][j] == ds.vocab_size then
+	    self.gradInput[i][j][ds.vocab_size] = 0 -- set to zero
+      end
+     end
    end
---   -- remove extra gradInput tensors (save for later)
---   for i=#inputTable+1,#self.gradInput do
---      table.insert(self._gradInput, self.gradInput[i])
---      self.gradInput[i] = nil
---   end
---   
---   if #inputTable >= 3 and not self.isStateless then
---      -- make sure the criterion is stateless
---      local gradInput
---      for i = 1,3 do
---         self.criterion:forward(inputTable[i], targetTable[i])
---         gradInput = self.criterion:backward(inputTable[i], targetTable[i])
---         nn.utils.recursiveAdd(gradInput -1, self.gradInput[i])
---         if math.abs(nn.rnn.recursiveSum(gradInput)) < 0.0001 then
---            error("SequencerCriterion only decorates stateless criterions : "..tostring(self.criterion))
---         end
---      end
---      self.isStateless = true -- test should only be run once
---   end
    return self.gradInput
 end
